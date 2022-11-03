@@ -1,7 +1,7 @@
+import os
 
 
-TOKEN = "chat-bot-id"
-HEROKU_APP = "chat-bot-app-name"
-LOCAL = False 
-MONGODB_CONNECTION_STRING = 'mongoDB-connection-string'
-
+LOCAL = False
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL") % os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.getenv("BOT_TOKEN")

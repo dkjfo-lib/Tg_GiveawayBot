@@ -16,7 +16,7 @@ from telegram.ext.conversationhandler import ConversationHandler
 from telegram.ext.filters import Filters
 from telegram.ext import CallbackQueryHandler
 from telegram.parsemode import ParseMode
-from config import HEROKU_APP, LOCAL, TOKEN
+from config import WEBHOOK_URL, LOCAL, BOT_TOKEN
 from database import giveaway_exists, load_giveaway, save_giveaway
 from giveaway import Giveaway
 from log import Log
@@ -29,11 +29,10 @@ PORT = os.getenv('PORT', default=8443)
 SUBSCRIBE_KEYWORD = 'subscribe_'
 UNSUBSCRIBE_KEYWORD = 'unsubscribe_'
 GIVEAWAYS_PATH = './giveaways'
-WEBHOOK_URL = "https://{0}.herokuapp.com/{1}".format(HEROKU_APP, TOKEN)
 langId = 1
 
-updater = Updater(TOKEN, use_context=True)
-bot = telegram.Bot(token=TOKEN)
+updater = Updater(BOT_TOKEN, use_context=True)
+bot = telegram.Bot(token=BOT_TOKEN)
 chatFunc = ChatFunc(bot)
 log = Log()
 
@@ -498,7 +497,7 @@ else:
              format(WEBHOOK_URL, "0.0.0.0", PORT))
     updater.start_webhook(listen="0.0.0.0",
                           port=int(PORT),
-                          url_path=TOKEN,
+                          url_path=BOT_TOKEN,
                           webhook_url=WEBHOOK_URL)
     updater.bot.set_webhook(WEBHOOK_URL)
     bot.set_webhook(WEBHOOK_URL)
