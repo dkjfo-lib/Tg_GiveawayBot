@@ -25,7 +25,7 @@ My commands:
     'Eng_cmd_start': 
         'I am your giveaway bot-manager!\nWith my help you can create and manage giveaways.\nType "/help" to see my commands.',
     'Eng_cmd_restart': 'Bot will be back in 5 seconds!',
-    'Eng_cmd_giveaway_subs': "Number of subs: {0}\n{1}",
+    'Eng_cmd_giveaway_subs': "Number of subs: <strong>{0}</strong>",
     'Eng_btn_sub_txt': 'subscribe',
     'Eng_btn_unsub_txt': 'unsubscribe',
     'Eng_msg_g_created': 'New giveaway created!\ngiveawayId:{0}\nFirst posted in chatId:{1}\nNumberOfWinners:{2}\nname:{3}\ndescription:{4}',
@@ -65,12 +65,12 @@ My commands:
     'Ru_cmd_start': 
         'Привет! я бот-менеджер конкурсов!\nС моей помощью ты можешь создавать и управлять конкурсами в своих группах.\nНапиши "/help" чтобы увидеть список команд.',
     'Ru_cmd_restart': 'Бот перезапустится через 5 секунд!',
-    'Ru_cmd_giveaway_subs': "Количество подписчиков: <strong>{0}</strong>\n{1}",
+    'Ru_cmd_giveaway_subs': "Количество подписчиков: <strong>{0}</strong>",
     'Ru_btn_sub_txt': 'Участвовать',
     'Ru_btn_unsub_txt': 'отписаться',
     'Ru_msg_g_created': 'Новый конкурс создан!\nId Конкурса:{0}\nВпервые опубликован в чате:{1}\nКоличество победителей:{2}\nИмя конкурса:{3}\nОписание конкурса:{4}',
     'Ru_msg_g_post_created': 'Новый пост о конкурсе создан!\nId Конкурса:{0}\nОпубликован в чате:{1}',
-    'Ru_post_g_finished': '<strong>{0} окончен!</strong>\n\nПоздравляем победителей:\n\n{1}\n\nПрошу победителей отписать в лс @yukishini ✨',
+    'Ru_post_g_finished': '<strong>{0} окончен!</strong>\n\nПоздравляем победителей:\n\n{1}\n\nЖдите сообщение в ЛС.\n\nВсем спасибо за участие. Впереди будут ещё розыгрыши, не пропустите ✨',
     'Ru_err_no_g_exists': 'Конкурса с Id "%s" не существует',
     'Ru_err_no_g_id': 'Пожалуйста укажите Id конкурса',
     'Ru_err_no_g_name': 'Не хватает имени конкурса',

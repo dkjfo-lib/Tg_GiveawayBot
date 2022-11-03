@@ -62,6 +62,23 @@ def saveGiveaway(giveaway: Giveaway):
     #     pickle.dump(giveaway, giveaway_file)
 
 
+def is_subscribed(chat_id: str, user_id: str):
+    try:
+        chat_id = "-1001613537030"
+        mem = bot.get_chat_member(chat_id, user_id)
+        if mem.status == 'member':
+            return True
+        else:
+            return False
+    except:
+        return False
+
+
+def parse_subs(chat_id: str, all_subs: List[UserInfo]):
+    subbed_subs = [sub for sub in all_subs if is_subscribed(chat_id, sub.id)]
+    return subbed_subs
+
+
 def checkIfAuthor(giveaway: Giveaway, update: Update, doStuff: Function):
     if not update.effective_user:
         doStuff(giveaway, update)
@@ -210,13 +227,24 @@ def divide_chunks(list, chunk_length: int):
         yield list[i:i + chunk_length]
 
 
-def parseName(user: UserInfo):
+def parseNameHTML(user: UserInfo, subbed: bool):
+    name = ''
+    if user.name.startswith('@'):
+        name = user.name
+    else:
+        name = "<a href='tg://user?id=%s'>%s</a>" % (user.id, user.name)
+
+    return name 
+    #return f"{user.name} {subbed} <a href='tg://user?id={user.id}'>{user.id}</a>"
+
+
+def parseNameMD(user: UserInfo):
     name = ''
     if user.name.startswith('@'):
         name = user.name[1:]
     else:
         name = user.name
-    return "<a href='tg://user?id=%s'>%s</a>" % (user.id, name)
+    return "[%s](tg://user?id=%s)" % (name, user.id)
 
 
 def giveaway_subs(update: Update, command: str):
@@ -225,16 +253,36 @@ def giveaway_subs(update: Update, command: str):
     if not checkGiveawayId(update, giveawayId):
         return
     giveaway = loadGiveaway(giveawayId)
-    if update.effective_user.id == giveaway.author:
-        subs = [parseName(sub) for sub in giveaway.subscribers]
-        subs_chunks = divide_chunks(subs, 1)
-        # for chunk in subs_chunks:
-        subsDsc = get_line(langId, 'cmd_giveaway_subs').format(
-            str(len(subs)), '\n'.join(subs))
-        print(subsDsc)
+    subbed_subs = parse_subs("chat_id", giveaway.subscribers)
+    if not update.effective_user:
         bot.send_message(chat_id=update.effective_chat.id,
                          parse_mode=ParseMode.HTML,
-                         text='\n'.join(subs))
+                         text=get_line(langId, 'cmd_giveaway_subs').format(str(len(subbed_subs))))
+
+        subs_list = [parseNameHTML(sub, is_subscribed("chat_id", sub.id))
+                     for sub in subbed_subs]
+        subs_chunks = divide_chunks(subs_list, 100)
+        for subs_chunk in subs_chunks:
+            subs_tags = '\n'.join(subs_chunk)
+            print(subs_tags)
+            bot.send_message(chat_id=update.effective_chat.id,
+                             parse_mode=ParseMode.HTML,
+                             text=subs_tags)
+        return
+    if update.effective_user.id == giveaway.author:
+        bot.send_message(chat_id=update.effective_chat.id,
+                         parse_mode=ParseMode.HTML,
+                         text=get_line(langId, 'cmd_giveaway_subs').format(str(len(subbed_subs))))
+
+        subs_list = [parseNameHTML(sub, is_subscribed("chat_id", sub.id))
+                     for sub in subbed_subs]
+        subs_chunks = divide_chunks(subs_list, 100)
+        for subs_chunk in subs_chunks:
+            subs_tags = '\n'.join(subs_chunk)
+            print(subs_tags)
+            bot.send_message(chat_id=update.effective_chat.id,
+                             parse_mode=ParseMode.HTML,
+                             text=subs_tags)
     else:
         chatFunc.sendDontHavePermission(update, giveaway, langId)
     chatFunc.deleteOriginalMessage(update)
@@ -249,13 +297,17 @@ def giveaway_finish(update: Update, command: str):
         return
     giveaway = loadGiveaway(giveawayId)
     if not update.effective_user:
-        winners = giveaway.getWinners()
+        if (not giveaway.ended):
+            giveaway.endGiveaway(bot)
+        winners = '\n'.join([parseNameHTML(sub, is_subscribed("chat_id", sub.id)) for sub in giveaway.winners])
         makeGiveawayEndPost(giveaway, update, winners)
         saveGiveaway(giveaway)
         chatFunc.deleteOriginalMessage(update)
         return
     if update.effective_user.id == giveaway.author:
-        winners = giveaway.getWinners()
+        if (not giveaway.ended):
+            giveaway.endGiveaway(bot)
+        winners = '\n'.join([parseNameHTML(sub, is_subscribed("chat_id", sub.id)) for sub in giveaway.winners])
         makeGiveawayEndPost(giveaway, update, winners)
         saveGiveaway(giveaway)
     else:
@@ -305,14 +357,6 @@ def giveaway_edit(update: Update, command: str, photo_id: str = None):
     else:
         chatFunc.sendDontHavePermission(update, giveaway, langId)
     chatFunc.deleteOriginalMessage(update)
-
-
-def is_subscribed(update: Update, user_id: str):
-    try:
-        update.effective_chat.get_member(user_id)
-        return True
-    except:
-        return False
 
 
 def callback_query_handler(update: Update, context: CallbackContext):
