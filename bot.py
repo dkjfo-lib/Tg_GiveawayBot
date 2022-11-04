@@ -4,7 +4,6 @@ import os.path
 from pyclbr import Function
 import sys
 from typing import List
-from unicodedata import name
 from uuid import UUID, uuid4
 import telegram
 from telegram.ext.updater import Updater
