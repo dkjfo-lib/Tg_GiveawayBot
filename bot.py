@@ -233,8 +233,8 @@ def parseNameHTML(user: UserInfo, subbed: bool):
     else:
         name = "<a href='tg://user?id=%s'>%s</a>" % (user.id, user.name)
 
-    return name 
-    #return f"{user.name} {subbed} <a href='tg://user?id={user.id}'>{user.id}</a>"
+    return name
+    # return f"{user.name} {subbed} <a href='tg://user?id={user.id}'>{user.id}</a>"
 
 
 def parseNameMD(user: UserInfo):
@@ -298,7 +298,8 @@ def giveaway_finish(update: Update, command: str):
     if not update.effective_user:
         if (not giveaway.ended):
             giveaway.endGiveaway(bot)
-        winners = '\n'.join([parseNameHTML(sub, is_subscribed("chat_id", sub.id)) for sub in giveaway.winners])
+        winners = '\n'.join([parseNameHTML(sub, is_subscribed(
+            "chat_id", sub.id)) for sub in giveaway.winners])
         makeGiveawayEndPost(giveaway, update, winners)
         saveGiveaway(giveaway)
         chatFunc.deleteOriginalMessage(update)
@@ -306,7 +307,8 @@ def giveaway_finish(update: Update, command: str):
     if update.effective_user.id == giveaway.author:
         if (not giveaway.ended):
             giveaway.endGiveaway(bot)
-        winners = '\n'.join([parseNameHTML(sub, is_subscribed("chat_id", sub.id)) for sub in giveaway.winners])
+        winners = '\n'.join([parseNameHTML(sub, is_subscribed(
+            "chat_id", sub.id)) for sub in giveaway.winners])
         makeGiveawayEndPost(giveaway, update, winners)
         saveGiveaway(giveaway)
     else:
@@ -367,17 +369,20 @@ def callback_query_handler(update: Update, context: CallbackContext):
         user = UserInfo(update.effective_user.id, update.effective_user.name)
         # check subscription
         isSubscribed = is_subscribed(update, user.id)
-        log.info('User @{0} subscribed:"{1}"'.
+        log.info('User {0} subscribed:"{1}"'.
                  format(user.name, isSubscribed))
         if isSubscribed:
             if not giveaway.containsUser(user):
                 giveaway.subscribers.append(user)
                 saveGiveaway(giveaway)
-                update.callback_query.answer("Вы участвуете!")
+                update.callback_query.answer(
+                    "Вы участвуете!", timeout=1000, cache_time=10)
             else:
-                update.callback_query.answer("Вы уже участвуете!")
+                update.callback_query.answer(
+                    "Вы уже участвуете!", timeout=1000, cache_time=10)
         else:
-            update.callback_query.answer("Вы не подписаны на канал!")
+            update.callback_query.answer(
+                "Вы не подписаны на канал!", timeout=1000, cache_time=10)
         return
     if callbackData.startswith(UNSUBSCRIBE_KEYWORD):
         giveawayId = callbackData.replace(UNSUBSCRIBE_KEYWORD, '')
