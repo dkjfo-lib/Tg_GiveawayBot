@@ -372,7 +372,7 @@ def callback_query_handler(update: Update, context: CallbackContext):
         isSubscribed = is_subscribed(update, user.id)
         log.info('User {0} subscribed:"{1}"'.
                  format(user.name, isSubscribed))
-        time.sleep(20)
+        time.sleep(120)
         if isSubscribed:
             if not giveaway.containsUser(user):
                 giveaway.subscribers.append(user)
