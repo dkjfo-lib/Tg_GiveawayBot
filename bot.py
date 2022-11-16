@@ -3,6 +3,7 @@ import os
 import os.path
 from pyclbr import Function
 import sys
+import time
 from typing import List
 from uuid import UUID, uuid4
 import telegram
@@ -371,6 +372,7 @@ def callback_query_handler(update: Update, context: CallbackContext):
         isSubscribed = is_subscribed(update, user.id)
         log.info('User {0} subscribed:"{1}"'.
                  format(user.name, isSubscribed))
+        time.sleep(5)
         if isSubscribed:
             if not giveaway.containsUser(user):
                 giveaway.subscribers.append(user)
