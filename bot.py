@@ -14,6 +14,7 @@ from telegram.ext.commandhandler import CommandHandler
 from telegram.ext.messagehandler import MessageHandler
 from telegram.ext.conversationhandler import ConversationHandler
 from telegram.ext.filters import Filters
+from telegram.ext.defaults import Defaults
 from telegram.ext import CallbackQueryHandler
 from telegram.parsemode import ParseMode
 from config import WEBHOOK_URL, LOCAL, BOT_TOKEN
@@ -33,6 +34,7 @@ langId = 1
 
 updater = Updater(BOT_TOKEN, use_context=True)
 bot = telegram.Bot(token=BOT_TOKEN)
+bot.defaults = Defaults(timeout=180)
 chatFunc = ChatFunc(bot)
 log = Log()
 
