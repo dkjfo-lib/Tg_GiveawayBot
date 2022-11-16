@@ -380,13 +380,13 @@ def callback_query_handler(update: Update, context: CallbackContext):
                 giveaway.subscribers.append(user)
                 saveGiveaway(giveaway)
                 update.callback_query.answer(
-                    "Вы участвуете!", timeout=1000, cache_time=10)
+                    "Вы участвуете!", timeout=200000, cache_time=10)
             else:
                 update.callback_query.answer(
-                    "Вы уже участвуете!", timeout=1000, cache_time=10)
+                    "Вы уже участвуете!", timeout=200000, cache_time=10)
         else:
             update.callback_query.answer(
-                "Вы не подписаны на канал!", timeout=1000, cache_time=10)
+                "Вы не подписаны на канал!", timeout=200000, cache_time=10)
         return
     if callbackData.startswith(UNSUBSCRIBE_KEYWORD):
         giveawayId = callbackData.replace(UNSUBSCRIBE_KEYWORD, '')
