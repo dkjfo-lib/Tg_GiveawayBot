@@ -366,22 +366,24 @@ def giveaway_edit(update: Update, command: str, photo_id: str = None):
 def callback_query_handler(update: Update, context: CallbackContext):
     log.info('processing callback "{0}"'.format(update.callback_query.data))
     callbackData = update.callback_query.data
+    update.callback_query.answer("Вы участвуете!")
     if callbackData.startswith(SUBSCRIBE_KEYWORD):
         giveawayId = callbackData.replace(SUBSCRIBE_KEYWORD, '')
         giveaway = loadGiveaway(giveawayId)
         user = UserInfo(update.effective_user.id, update.effective_user.name)
         # check subscription
         if giveaway.containsUser(user):
-            update.callback_query.answer("Вы уже участвуете!")
+            pass
+            # update.callback_query.answer("Вы уже участвуете!")
         else:
             isSubscribed = True
             log.info('User {0} subscribed:"{1}"'.format(user.name, isSubscribed))
             if isSubscribed:
-                update.callback_query.answer("Вы участвуете!")
+                # update.callback_query.answer("Вы участвуете!")
                 giveaway.subscribers.append(user)
                 saveGiveaway(giveaway)
             else:
-                update.callback_query.answer("Вы не подписаны на канал!")
+                # update.callback_query.answer("Вы не подписаны на канал!")
         return
     if callbackData.startswith(UNSUBSCRIBE_KEYWORD):
         giveawayId = callbackData.replace(UNSUBSCRIBE_KEYWORD, '')
@@ -532,7 +534,7 @@ def forwarder(update: Update, context: CallbackContext):
 # # /run_test
 # updater.dispatcher.add_handler(MessageHandler(Filters.photo, photoHandler))
 # processes buttons requests
-updater.dispatcher.add_handler(CallbackQueryHandler(callback_query_handler, run_async=False))
+updater.dispatcher.add_handler(CallbackQueryHandler(callback_query_handler))
 updater.dispatcher.add_handler(MessageHandler(Filters.all, forwarder))
 
 log.info('LOCAL:%s' % LOCAL)
