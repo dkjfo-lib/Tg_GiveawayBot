@@ -383,6 +383,7 @@ def callback_query_handler(update: Update, context: CallbackContext):
                 giveaway.subscribers.append(user)
                 saveGiveaway(giveaway)
             else:
+                pass
                 # update.callback_query.answer("Вы не подписаны на канал!")
         return
     if callbackData.startswith(UNSUBSCRIBE_KEYWORD):
