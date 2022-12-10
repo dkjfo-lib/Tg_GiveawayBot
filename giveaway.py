@@ -18,33 +18,43 @@ class Giveaway(object):
         self.winners = winners
         self.photoId = photoId
 
-    def containsUser(self, user: UserInfo):
+    def isSubbedToGiveaway(self, user: UserInfo):
         return any(map(user.isSame, self.subscribers))
 
-    def is_subscribed(self, bot, chat_id: str, user_id: str):
-        try:
-            chat_id = "-1001613537030"
-            mem = bot.get_chat_member(chat_id, user_id)
-            if mem.status == 'member':
-                return True
-            else:
-                return False
-        except:
+    def isSubbedToChannel(self, bot, chat_id: str, user_id: str):
+        chat_id = "-1001613537030"
+        mem = bot.get_chat_member(chat_id, user_id)
+        print(mem.status)
+        if mem.status == 'member':
+            return True
+        else:
             return False
 
-    def parse_subs(self, bot, chat_id: str, all_subs: List[UserInfo]):
-        subbed_subs = [
-            sub for sub in all_subs if self.is_subscribed(bot, chat_id, sub.id)]
-        return subbed_subs
+    def onlySubbedToChannel(self, bot, chat_id: str, all_subs: List[UserInfo]):
+        return [sub for sub in all_subs if self.isSubbedToChannel(bot, chat_id, sub.id)]
+
+    def reroll_user(self, bot, user_id: str):
+        # get not winner subs
+        not_winners_subbed_to_channel = self.onlySubbedToChannel(
+            bot, "chat_id", self.subscribers)
+        for winner in self.winners:
+            if winner in not_winners_subbed_to_channel:
+                not_winners_subbed_to_channel.remove(winner)
+        # find and replace winner
+        self.winners = [random.choice(not_winners_subbed_to_channel)
+                        if (winner_info.id == user_id) | (winner_info.name == user_id)
+                        else winner_info
+                        for winner_info in self.winners]
 
     def endGiveaway(self, bot):
         # if subs.len < numOfWin => numOfWinners = subs.len
-        self.numberOfWinners = min(self.numberOfWinners, len(self.subscribers))
+        actual_number_of_winners = min(
+            self.numberOfWinners, len(self.subscribers))
         # generate winners
-        subs = self.parse_subs(bot, "chat_id", self.subscribers)
+        subs = self.onlySubbedToChannel(bot, "chat_id", self.subscribers)
         print("possible subs: %s" % str(len(subs)))
         winners: List[UserInfo] = list()
-        for i in range(0, self.numberOfWinners):
+        for i in range(0, actual_number_of_winners):
             newWinner = random.choice(subs)
             subs.remove(newWinner)
             winners.append(newWinner)

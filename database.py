@@ -64,6 +64,12 @@ def giveaway_exists(giveawayId: str):
     return collection.count_documents({'_id': giveawayId}, limit=1) != 0
 
 
+def delete_giveaway(giveawayId: str):
+    collection = get_collection()
+    collection.delete_one({'_id': giveawayId})
+    print('giveaway "%s" deleted' % str(giveawayId))
+
+
 def save_giveaway(giveaway: Giveaway):
     collection = get_collection()
     new_values = serialize_giveaway(giveaway)

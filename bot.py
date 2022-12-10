@@ -18,7 +18,7 @@ from telegram.ext.defaults import Defaults
 from telegram.ext import CallbackQueryHandler
 from telegram.parsemode import ParseMode
 from config import WEBHOOK_URL, LOCAL, BOT_TOKEN
-from database import giveaway_exists, load_giveaway, save_giveaway
+from database import giveaway_exists, load_giveaway, save_giveaway, delete_giveaway
 from giveaway import Giveaway
 from log import Log
 from userInfo import UserInfo
@@ -35,7 +35,7 @@ langId = 1
 updater = Updater(BOT_TOKEN, use_context=True)
 bot = telegram.Bot(token=BOT_TOKEN)
 bot.defaults = Defaults(timeout=180)
-chatFunc = ChatFunc(bot)
+chatFunctions = ChatFunc(bot)
 log = Log()
 
 
@@ -44,58 +44,9 @@ def restart_program():
     os.execl(python, python, * sys.argv)
 
 
-def giveawayExists(giveawayId: str):
-    return giveaway_exists(giveawayId)
-    # return os.path.exists(os.path.join(GIVEAWAYS_PATH, 'g_%s.pkl' % guid))
-
-
-def loadGiveaway(giveawayId: str) -> Giveaway:
-    return load_giveaway(giveawayId)
-    # with open(os.path.join(GIVEAWAYS_PATH, 'g_%s.pkl' % giveawayId), 'rb') as giveaway_file:
-    #     giveaway :Giveaway = pickle.load(giveaway_file)
-    #     return giveaway
-
-
-def saveGiveaway(giveaway: Giveaway):
-    save_giveaway(giveaway)
-    # if not os.path.exists(GIVEAWAYS_PATH):
-    #     os.mkdir(GIVEAWAYS_PATH)
-    # with open(os.path.join(GIVEAWAYS_PATH, 'g_%s.pkl' % giveaway.id), 'wb') as giveaway_file:
-    #     pickle.dump(giveaway, giveaway_file)
-
-
-def is_subscribed(chat_id: str, user_id: str):
-    try:
-        chat_id = "-1001613537030"
-        mem = bot.get_chat_member(chat_id, user_id)
-        if mem.status == 'member':
-            return True
-        else:
-            return False
-    except:
-        return False
-
-
-def parse_subs(chat_id: str, all_subs: List[UserInfo]):
-    subbed_subs = [sub for sub in all_subs if is_subscribed(chat_id, sub.id)]
-    return subbed_subs
-
-
-def checkIfAuthor(giveaway: Giveaway, update: Update, doStuff: Function):
-    if not update.effective_user:
-        doStuff(giveaway, update)
-        return
-    if giveaway.is_Author(update.effective_user.id):
-        doStuff(giveaway, update)
-    else:
-        chatFunc.sendDontHavePermission(update, giveaway, langId)
-
-
 def makeGiveawayPost(giveaway: Giveaway, update: Update):
     button_s = [telegram.InlineKeyboardButton(
         text=get_line(langId, 'btn_sub_txt'), callback_data=SUBSCRIBE_KEYWORD + str(giveaway.id))]
-    # button_u = [telegram.InlineKeyboardButton(
-    #     text=get_line(langId, 'btn_unsub_txt'), callback_data=UNSUBSCRIBE_KEYWORD + str(giveaway.id))]
     keyboard = telegram.InlineKeyboardMarkup([button_s])
     text = '<strong>{0}</strong>\n{1}'.format(
         giveaway.name, giveaway.description)
@@ -139,7 +90,7 @@ def checkGiveawayId(update: Update, giveawayId: str):
         bot.sendMessage(chat_id=update.effective_chat.id,
                         text=get_line(langId, 'err_no_g_id'))
         return False
-    if not giveawayExists(giveawayId):
+    if not giveaway_exists(giveawayId):
         bot.sendMessage(chat_id=update.effective_chat.id,
                         text=get_line(langId, 'err_no_g_exists') % giveawayId)
         return False
@@ -159,11 +110,21 @@ def restart(update: Update, context: CallbackContext):
         return
     bot.sendMessage(chat_id=update.effective_chat.id,
                     text=get_line(langId, 'cmd_restart'))
-    chatFunc.deleteOriginalMessage(update)
+    chatFunctions.deleteOriginalMessage(update)
     restart_program()
 
 
-# creates a new giveaway and a post about it
+def log_command_and_extract_params(update: Update, command: str, keyword: str, params_count: int) -> bool:
+    log.info(f'processing command "{command}"')
+    command_params = command.replace(keyword, '').strip().split("''")
+    # check params are correct
+    if len(command_params) != params_count:
+        bot.sendMessage(chat_id=update.effective_chat.id,
+                        text=f'ожидалось {params_count} параметров, было отпралено {len(command_params)}')
+        return None
+    return command_params
+
+
 def giveaway_create(update: Update, command: str, photo_id: str = None):
     log.info('processing command "{0}"'.format(command))
     giveawayInfo = command.replace('/g_create', '').strip().split("''")
@@ -201,13 +162,27 @@ def giveaway_create(update: Update, command: str, photo_id: str = None):
         winners=[],
         photoId=photo_id
     )
-    saveGiveaway(newGiveaway)
+    save_giveaway(newGiveaway)
 
     makeGiveawayPost(newGiveaway, update)
     bot.sendMessage(chat_id=newGiveaway.author,
                     text=get_line(langId, 'msg_g_created').
                     format(newGiveaway.id, update.effective_chat.id, newGiveaway.numberOfWinners, newGiveaway.name, newGiveaway.description))
-    chatFunc.deleteOriginalMessage(update)
+    chatFunctions.deleteOriginalMessage(update)
+
+
+def giveaway_Delete(update: Update, command: str):
+    log.info('processing command "{0}"'.format(command))
+    giveawayId = command.replace('/g_delete', '').strip()
+    if not checkGiveawayId(update, giveawayId):
+        return
+    giveaway = load_giveaway(giveawayId)
+    if giveaway.is_Author(update.effective_user.id):
+        delete_giveaway(giveawayId)
+        bot.sendMessage(chat_id=giveaway.author,
+                        text=f'Розыгрыш {giveaway.id} успешно удален')
+    else:
+        chatFunctions.sendDontHavePermission(update, giveaway, langId)
 
 
 def giveaway_post(update: Update, command: str):
@@ -215,13 +190,16 @@ def giveaway_post(update: Update, command: str):
     giveawayId = command.replace('/g_post', '').strip()
     if not checkGiveawayId(update, giveawayId):
         return
-    giveaway = loadGiveaway(giveawayId)
+    giveaway = load_giveaway(giveawayId)
 
-    checkIfAuthor(giveaway, update, makeGiveawayPost)
-    bot.sendMessage(chat_id=giveaway.author,
-                    text=get_line(langId, 'msg_g_post_created').
-                    format(giveaway.id, update.effective_chat.id))
-    chatFunc.deleteOriginalMessage(update)
+    if (not update.effective_user) | (giveaway.is_Author(update.effective_user.id)):
+        makeGiveawayPost(giveaway, update)
+        bot.sendMessage(chat_id=giveaway.author,
+                        text=get_line(langId, 'msg_g_post_created').
+                        format(giveaway.id, update.effective_chat.id))
+    else:
+        chatFunctions.sendDontHavePermission(update, giveaway, langId)
+    chatFunctions.deleteOriginalMessage(update)
 
 
 def divide_chunks(list, chunk_length: int):
@@ -229,24 +207,11 @@ def divide_chunks(list, chunk_length: int):
         yield list[i:i + chunk_length]
 
 
-def parseNameHTML(user: UserInfo, subbed: bool):
-    name = ''
+def parseNameHTML(user: UserInfo):
     if user.name.startswith('@'):
-        name = user.name
+        return user.name
     else:
-        name = "<a href='tg://user?id=%s'>%s</a>" % (user.id, user.name)
-
-    return name
-    # return f"{user.name} {subbed} <a href='tg://user?id={user.id}'>{user.id}</a>"
-
-
-def parseNameMD(user: UserInfo):
-    name = ''
-    if user.name.startswith('@'):
-        name = user.name[1:]
-    else:
-        name = user.name
-    return "[%s](tg://user?id=%s)" % (name, user.id)
+        return "<a href='tg://user?id=%s'>%s</a>" % (user.id, user.name)
 
 
 def giveaway_subs(update: Update, command: str):
@@ -254,30 +219,16 @@ def giveaway_subs(update: Update, command: str):
     giveawayId = command.replace('/g_subs', '').strip()
     if not checkGiveawayId(update, giveawayId):
         return
-    giveaway = loadGiveaway(giveawayId)
-    subbed_subs = parse_subs("chat_id", giveaway.subscribers)
-    if not update.effective_user:
+    giveaway = load_giveaway(giveawayId)
+    if (not update.effective_user) | (update.effective_user.id == giveaway.author):
+
+        subbedToChannel_subs = giveaway.onlySubbedToChannel(
+            "chat_id", giveaway.subscribers)
         bot.send_message(chat_id=update.effective_chat.id,
                          parse_mode=ParseMode.HTML,
-                         text=get_line(langId, 'cmd_giveaway_subs').format(str(len(subbed_subs))))
+                         text=get_line(langId, 'cmd_giveaway_subs').format(str(len(subbedToChannel_subs))))
 
-        subs_list = [parseNameHTML(sub, is_subscribed("chat_id", sub.id))
-                     for sub in subbed_subs]
-        subs_chunks = divide_chunks(subs_list, 100)
-        for subs_chunk in subs_chunks:
-            subs_tags = '\n'.join(subs_chunk)
-            print(subs_tags)
-            bot.send_message(chat_id=update.effective_chat.id,
-                             parse_mode=ParseMode.HTML,
-                             text=subs_tags)
-        return
-    if update.effective_user.id == giveaway.author:
-        bot.send_message(chat_id=update.effective_chat.id,
-                         parse_mode=ParseMode.HTML,
-                         text=get_line(langId, 'cmd_giveaway_subs').format(str(len(subbed_subs))))
-
-        subs_list = [parseNameHTML(sub, is_subscribed("chat_id", sub.id))
-                     for sub in subbed_subs]
+        subs_list = [parseNameHTML(sub) for sub in subbedToChannel_subs]
         subs_chunks = divide_chunks(subs_list, 100)
         for subs_chunk in subs_chunks:
             subs_tags = '\n'.join(subs_chunk)
@@ -286,10 +237,8 @@ def giveaway_subs(update: Update, command: str):
                              parse_mode=ParseMode.HTML,
                              text=subs_tags)
     else:
-        chatFunc.sendDontHavePermission(update, giveaway, langId)
-    chatFunc.deleteOriginalMessage(update)
-
-# /gf
+        chatFunctions.sendDontHavePermission(update, giveaway, langId)
+    chatFunctions.deleteOriginalMessage(update)
 
 
 def giveaway_finish(update: Update, command: str):
@@ -297,26 +246,40 @@ def giveaway_finish(update: Update, command: str):
     giveawayId = command.replace('/g_finish', '').strip()
     if not checkGiveawayId(update, giveawayId):
         return
-    giveaway = loadGiveaway(giveawayId)
-    if not update.effective_user:
+    giveaway = load_giveaway(giveawayId)
+    if (not update.effective_user) | (update.effective_user.id == giveaway.author):
         if (not giveaway.ended):
             giveaway.endGiveaway(bot)
-        winners = '\n'.join([parseNameHTML(sub, is_subscribed(
-            "chat_id", sub.id)) for sub in giveaway.winners])
+        winners = '\n'.join([parseNameHTML(sub) for sub in giveaway.winners])
         makeGiveawayEndPost(giveaway, update, winners)
-        saveGiveaway(giveaway)
-        chatFunc.deleteOriginalMessage(update)
+        save_giveaway(giveaway)
+        chatFunctions.deleteOriginalMessage(update)
         return
-    if update.effective_user.id == giveaway.author:
-        if (not giveaway.ended):
-            giveaway.endGiveaway(bot)
-        winners = '\n'.join([parseNameHTML(sub, is_subscribed(
-            "chat_id", sub.id)) for sub in giveaway.winners])
-        makeGiveawayEndPost(giveaway, update, winners)
-        saveGiveaway(giveaway)
     else:
-        chatFunc.sendDontHavePermission(update, giveaway, langId)
-    chatFunc.deleteOriginalMessage(update)
+        chatFunctions.sendDontHavePermission(update, giveaway, langId)
+
+
+def giveaway_reroll_winner(update: Update, command: str):
+    command_params = log_command_and_extract_params(
+        update, command, '/g_reroll', 2)
+    if not command_params:
+        return
+    giveawayId = command_params[0]
+    user_id = command_params[1]
+    if not checkGiveawayId(update, giveawayId):
+        return
+    giveaway = load_giveaway(giveawayId)
+    if (not update.effective_user) | (not update.effective_chat.id == update.effective_user.id):
+        bot.send_message(chat_id=update.effective_chat.id,
+                         text='Комманда доступна только в чате бота')
+    elif chatFunctions.isChatWithAuthor(update, giveaway):
+        giveaway.reroll_user(bot, user_id)
+        winners = '\n'.join([parseNameHTML(sub) for sub in giveaway.winners])
+        makeGiveawayEndPost(giveaway, update, winners)
+        save_giveaway(giveaway)
+    else:
+        chatFunctions.sendDontHavePermission(update, giveaway, langId)
+    chatFunctions.deleteOriginalMessage(update)
 
 
 def giveaway_edit(update: Update, command: str, photo_id: str = None):
@@ -350,68 +313,35 @@ def giveaway_edit(update: Update, command: str, photo_id: str = None):
                         text=get_line(langId, 'err_wr_g_NoW'))
         return
 
-    giveaway = loadGiveaway(giveawayId)
+    giveaway = load_giveaway(giveawayId)
     if update.effective_user.id == giveaway.author:
         giveaway.name = newName
         giveaway.description = newDescription
         giveaway.numberOfWinners = int(newNoW)
         giveaway.photoId = photo_id
-        saveGiveaway(giveaway)
+        save_giveaway(giveaway)
         makeGiveawayPost(giveaway, update)
     else:
-        chatFunc.sendDontHavePermission(update, giveaway, langId)
-    chatFunc.deleteOriginalMessage(update)
+        chatFunctions.sendDontHavePermission(update, giveaway, langId)
+    chatFunctions.deleteOriginalMessage(update)
 
 
 def callback_query_handler(update: Update, context: CallbackContext):
     log.info('processing callback "{0}"'.format(update.callback_query.data))
-    callbackData = update.callback_query.data
     update.callback_query.answer("Вы участвуете!")
+    callbackData = update.callback_query.data
     if callbackData.startswith(SUBSCRIBE_KEYWORD):
         giveawayId = callbackData.replace(SUBSCRIBE_KEYWORD, '')
-        giveaway = loadGiveaway(giveawayId)
+        giveaway = load_giveaway(giveawayId)
         user = UserInfo(update.effective_user.id, update.effective_user.name)
         # check subscription
-        if giveaway.containsUser(user):
-            pass
-            # update.callback_query.answer("Вы уже участвуете!")
-        else:
-            isSubscribed = True
-            log.info('User {0} subscribed:"{1}"'.format(user.name, isSubscribed))
-            if isSubscribed:
-                # update.callback_query.answer("Вы участвуете!")
-                giveaway.subscribers.append(user)
-                saveGiveaway(giveaway)
-            else:
-                pass
-                # update.callback_query.answer("Вы не подписаны на канал!")
-        return
-    if callbackData.startswith(UNSUBSCRIBE_KEYWORD):
-        giveawayId = callbackData.replace(UNSUBSCRIBE_KEYWORD, '')
-        giveaway = loadGiveaway(giveawayId)
-        user = UserInfo(update.effective_user.id, update.effective_user.name)
-        sameUser = user.findSame(giveaway.subscribers)
-        if sameUser:
-            giveaway.subscribers.remove(sameUser)
-            saveGiveaway(giveaway)
-            # bot.sendMessage(chat_id=update.effective_chat.id,
-            #                 text='%s has been unsubscribed from the giveaway' % update.effective_user.name)
-        # else:
-            # bot.sendMessage(chat_id=update.effective_chat.id,
-            #                 text='%s is not in the giveaway' % update.effective_user.name)
-        update.callback_query.answer()
-        return
-    if callbackData.startswith('EDIT '):
-        giveawayId = callbackData.replace('EDIT ', '')
-        giveaway = loadGiveaway(giveawayId)
-        update.callback_query.answer()
-        return
-    update.callback_query.answer()
-
-
-def inDev(update: Update, context: CallbackContext):
-    update.message.reply_text(
-        "In development")
+        isSubbedToGiveaway = giveaway.isSubbedToGiveaway(user)
+        if not isSubbedToGiveaway:
+            log.info('User {0}'.format(user.name))
+            giveaway.subscribers.append(user)
+            save_giveaway(giveaway)
+        log.info(
+            f'user:{user.name} alreadySubbedToGiveaway: {isSubbedToGiveaway}')
 
 
 def tst(update: Update, context: CallbackContext):
@@ -423,7 +353,7 @@ def tst(update: Update, context: CallbackContext):
     user_giveaways: List[Giveaway] = []
     for f in giveaway_files:
         giveaway_id = f.replace('g_', '').replace('.pkl', '')
-        giveaway = loadGiveaway(giveaway_id)
+        giveaway = load_giveaway(giveaway_id)
         if giveaway.is_Author(update.effective_user.id):
             user_giveaways.append(giveaway)
 
@@ -443,6 +373,10 @@ def tst(update: Update, context: CallbackContext):
     update.message.reply_text(message, reply_markup=reply_markup)
 
 
+def displayGiveawayInfo(update: Update, context: CallbackContext):
+    load_giveaway()
+
+
 def forwarder(update: Update, context: CallbackContext):
 
     text: str = ''
@@ -455,9 +389,6 @@ def forwarder(update: Update, context: CallbackContext):
 
     if len(update.effective_message.photo) > 0:
         photoId = update.effective_message.photo[0].file_id
-
-    if update.effective_user:
-        authorId = update.effective_user.id
 
     log.info('Processing new message\n\nText:"{0}"\n\nphotoId:"{1}"\n'.
              format(text, photoId))
@@ -497,6 +428,14 @@ def forwarder(update: Update, context: CallbackContext):
         log.info('launching finish')
         giveaway_finish(update, text)
 
+    if text.startswith('/g_delete'):
+        log.info('launching delete')
+        giveaway_Delete(update, text)
+
+    if text.startswith('/g_reroll'):
+        log.info('launching reroll')
+        giveaway_reroll_winner(update, text)
+
 
 # updater.dispatcher.add_handler(ConversationHandler(
 #         entry_points=[CallbackQueryHandler(callback_query_handler)],
@@ -507,34 +446,6 @@ def forwarder(update: Update, context: CallbackContext):
 #         fallbacks=[CommandHandler('cancel', cancel)],
 #         per_user=True
 #     ))
-# # updater.dispatcher.add_handler(CommandHandler('tst', tst))
-# updater.dispatcher.add_handler(CommandHandler('start', start))
-# updater.dispatcher.add_handler(CommandHandler('help', help))
-# updater.dispatcher.add_handler(CommandHandler('restart', restart))
-# # create new giveaway with Description, Number of winners
-# # /g_create NoW''Name''Description
-# # /g_create 3''Annual Giveaway #3''This time we will giveaway 3 new skins to the members of community!\nAll you have to do is to press 'subscribe' button just below the post
-# updater.dispatcher.add_handler(
-#     CommandHandler('g_create', giveaway_createHandler))
-# # [author only] creates new giveaway post
-# # /g_post giveawayId
-# # /g_post 41cce09e-10b3-4cb2-9228-52d4d872eabc
-# updater.dispatcher.add_handler(CommandHandler('g_post', giveaway_post))
-# # [author only] shows number and nicknames of giveaway subs
-# # /g_subs giveawayID
-# # /g_subs 41cce09e-10b3-4cb2-9228-52d4d872eabc
-# updater.dispatcher.add_handler(CommandHandler('g_subs', giveaway_subs))
-# # [author only] change Description, Number of winners
-# # /g_edit giveawayID''NoW''Name''Description
-# # /g_edit 41cce09e-10b3-4cb2-9228-52d4d872eabc''3''Annual Giveaway #3''This time we will giveaway 3 new skins to the members of community!\nAll you have to do is to press 'subscribe' button just below the post
-# updater.dispatcher.add_handler(CommandHandler('g_edit', giveaway_editHandler))
-# # [author only] ends a giveaway if needed; sends a post about winners
-# # /g_finish giveawayID
-# # /g_finish 41cce09e-10b3-4cb2-9228-52d4d872eabc
-# updater.dispatcher.add_handler(CommandHandler('g_finish', giveaway_finish))
-# # /run_test
-# updater.dispatcher.add_handler(MessageHandler(Filters.photo, photoHandler))
-# processes buttons requests
 updater.dispatcher.add_handler(CallbackQueryHandler(callback_query_handler))
 updater.dispatcher.add_handler(MessageHandler(Filters.all, forwarder))
 
@@ -551,8 +462,4 @@ else:
                           webhook_url=WEBHOOK_URL)
     updater.bot.set_webhook(WEBHOOK_URL)
     bot.set_webhook(WEBHOOK_URL)
-
-# Run the bot until you press Ctrl-C or the process receives SIGINT,
-# SIGTERM or SIGABRT. This should be used most of the time, since
-# start_polling() is non-blocking and will stop the bot gracefully.
 updater.idle()

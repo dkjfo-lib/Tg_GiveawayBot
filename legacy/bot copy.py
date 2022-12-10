@@ -410,7 +410,7 @@ def callback_query_handler(update: Update, context: CallbackContext):
         giveawayId = callbackData.replace(SUBSCRIBE_KEYWORD, '')
         giveaway = loadGiveaway(giveawayId)
         user = UserInfo(update)
-        if giveaway.containsUser(user):
+        if giveaway.isSubbedToGiveaway(user):
             bot.sendMessage(chat_id=update.effective_chat.id,
                             text='%s is already subscribed to the giveaway' % update.effective_user.name)
         else:
@@ -429,7 +429,7 @@ def callback_query_handler(update: Update, context: CallbackContext):
             saveGiveaway(giveaway)
             bot.sendMessage(chat_id=update.effective_chat.id,
                             text='%s has been unsubscribed from the giveaway' % update.effective_user.name)
-            print(giveaway.containsUser(sameUser))
+            print(giveaway.isSubbedToGiveaway(sameUser))
         else:
             bot.sendMessage(chat_id=update.effective_chat.id,
                             text='%s is not in the giveaway' % update.effective_user.name)
