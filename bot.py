@@ -18,7 +18,7 @@ from telegram.ext.defaults import Defaults
 from telegram.ext import CallbackQueryHandler
 from telegram.parsemode import ParseMode
 from config import WEBHOOK_URL, LOCAL, BOT_TOKEN
-from database import giveaway_exists, load_giveaway, save_giveaway, delete_giveaway
+from database import giveaway_exists, load_giveaway, save_giveaway, delete_giveaway, get_giveaways_of_a_user
 from giveaway import Giveaway
 from log import Log
 from userInfo import UserInfo
@@ -82,6 +82,26 @@ def makeGiveawayEndPost(giveaway: Giveaway, update: Update, winners: str):
             text=text,
             parse_mode=ParseMode.HTML,
         )
+
+
+def display_winners_win_rate(update: Update, giveaway: Giveaway):
+    # creating current giveaway and a list of all other giveaways of a user
+    other_user_giveaways = get_giveaways_of_a_user(update.effective_user.id)
+    for other_giveaway in other_user_giveaways:
+        if other_giveaway.id == giveaway.id:
+            other_user_giveaways.remove(other_giveaway)
+
+    giveaway_count = len(other_user_giveaways)
+    text = f'Из {giveaway_count} проведенных вами конкурсов:'
+    # calculating win rate of current giveaway winners
+    for winner in giveaway.winners:
+        user_win_count = 0
+        for other_giveaway in other_user_giveaways:
+            for other_giveaway_winner in other_giveaway.winners:
+                if other_giveaway_winner.id == winner.id:
+                    user_win_count += 1
+        text += f'\n{winner.name} победил {user_win_count} раз'
+    bot.sendMessage(chat_id=update.effective_user.id, text=text)
 
 
 def checkGiveawayId(update: Update, giveawayId: str):
@@ -250,11 +270,11 @@ def giveaway_finish(update: Update, command: str):
     if (not update.effective_user) | (update.effective_user.id == giveaway.author):
         if (not giveaway.ended):
             giveaway.endGiveaway(bot)
+            display_winners_win_rate(update, giveaway)
         winners = '\n'.join([parseNameHTML(sub) for sub in giveaway.winners])
         makeGiveawayEndPost(giveaway, update, winners)
         save_giveaway(giveaway)
         chatFunctions.deleteOriginalMessage(update)
-        return
     else:
         chatFunctions.sendDontHavePermission(update, giveaway, langId)
 
@@ -276,6 +296,7 @@ def giveaway_reroll_winner(update: Update, command: str):
         giveaway.reroll_user(bot, user_id)
         winners = '\n'.join([parseNameHTML(sub) for sub in giveaway.winners])
         makeGiveawayEndPost(giveaway, update, winners)
+        display_winners_win_rate(update, giveaway)
         save_giveaway(giveaway)
     else:
         chatFunctions.sendDontHavePermission(update, giveaway, langId)

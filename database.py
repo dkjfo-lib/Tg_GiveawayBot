@@ -64,6 +64,14 @@ def giveaway_exists(giveawayId: str):
     return collection.count_documents({'_id': giveawayId}, limit=1) != 0
 
 
+def get_giveaways_of_a_user(user_id: str):
+    collection = get_collection()
+    giveaways_info = collection.find({'author': user_id})
+    giveaways = [deserialize_giveaway(giveaway_info)
+                 for giveaway_info in giveaways_info]
+    return giveaways
+
+
 def delete_giveaway(giveawayId: str):
     collection = get_collection()
     collection.delete_one({'_id': giveawayId})
