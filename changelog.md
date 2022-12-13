@@ -1,5 +1,8 @@
 # Changelog 
 
+### 2022.12.13.001
+1. added fix for deleted accounts
+
 ### 2022.12.12.001
 1. Added win rate message 
 

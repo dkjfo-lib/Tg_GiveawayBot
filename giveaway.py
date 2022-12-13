@@ -22,12 +22,15 @@ class Giveaway(object):
         return any(map(user.isSame, self.subscribers))
 
     def isSubbedToChannel(self, bot, chat_id: str, user_id: str):
-        chat_id = "-1001613537030"
-        mem = bot.get_chat_member(chat_id, user_id)
-        print(mem.status)
-        if mem.status == 'member':
-            return True
-        else:
+        try:
+            chat_id = "-1001613537030"
+            mem = bot.get_chat_member(chat_id, user_id)
+            print(mem.status)
+            if mem.status == 'member':
+                return True
+            else:
+                return False
+        except:
             return False
 
     def onlySubbedToChannel(self, bot, chat_id: str, all_subs: List[UserInfo]):
