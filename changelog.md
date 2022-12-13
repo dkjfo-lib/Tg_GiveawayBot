@@ -2,6 +2,7 @@
 
 ### 2022.12.13.001
 1. added fix for deleted accounts
+1. channel messages bug fix
 
 ### 2022.12.12.001
 1. Added win rate message 

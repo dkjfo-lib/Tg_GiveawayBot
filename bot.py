@@ -161,7 +161,7 @@ def giveaway_create(update: Update, command: str, photo_id: str = None):
         bot.sendMessage(chat_id=update.effective_chat.id,
                         text=get_line(langId, 'err_no_g_descr'))
         return
-    if (not giveawayInfo[0]) | (not giveawayInfo[0].isdigit()):
+    if (not giveawayInfo[0]) or (not giveawayInfo[0].isdigit()):
         bot.sendMessage(chat_id=update.effective_chat.id,
                         text=get_line(langId, 'err_no_g_NoW'))
         return
@@ -212,7 +212,7 @@ def giveaway_post(update: Update, command: str):
         return
     giveaway = load_giveaway(giveawayId)
 
-    if (not update.effective_user) | (giveaway.is_Author(update.effective_user.id)):
+    if (not update.effective_user) or (giveaway.is_Author(update.effective_user.id)):
         makeGiveawayPost(giveaway, update)
         bot.sendMessage(chat_id=giveaway.author,
                         text=get_line(langId, 'msg_g_post_created').
@@ -240,7 +240,7 @@ def giveaway_subs(update: Update, command: str):
     if not checkGiveawayId(update, giveawayId):
         return
     giveaway = load_giveaway(giveawayId)
-    if (not update.effective_user) | (update.effective_user.id == giveaway.author):
+    if (not update.effective_user) or (update.effective_user.id == giveaway.author):
 
         subbedToChannel_subs = giveaway.onlySubbedToChannel(
             "chat_id", giveaway.subscribers)
@@ -267,7 +267,7 @@ def giveaway_finish(update: Update, command: str):
     if not checkGiveawayId(update, giveawayId):
         return
     giveaway = load_giveaway(giveawayId)
-    if (not update.effective_user) | (update.effective_user.id == giveaway.author):
+    if (not update.effective_user) or (update.effective_user.id == giveaway.author):
         if (not giveaway.ended):
             giveaway.endGiveaway(bot)
             display_winners_win_rate(update, giveaway)
@@ -289,7 +289,7 @@ def giveaway_reroll_winner(update: Update, command: str):
     if not checkGiveawayId(update, giveawayId):
         return
     giveaway = load_giveaway(giveawayId)
-    if (not update.effective_user) | (not update.effective_chat.id == update.effective_user.id):
+    if (not update.effective_user) or (not update.effective_chat.id == update.effective_user.id):
         bot.send_message(chat_id=update.effective_chat.id,
                          text='Комманда доступна только в чате бота')
     elif chatFunctions.isChatWithAuthor(update, giveaway):
@@ -325,7 +325,7 @@ def giveaway_edit(update: Update, command: str, photo_id: str = None):
         bot.sendMessage(chat_id=update.effective_chat.id,
                         text=get_line(langId, 'err_no_g_descr'))
         return
-    if (not newNoW) | (not newNoW.isdigit()):
+    if (not newNoW) or (not newNoW.isdigit()):
         bot.sendMessage(chat_id=update.effective_chat.id,
                         text=get_line(langId, 'err_no_g_NoW'))
         return
